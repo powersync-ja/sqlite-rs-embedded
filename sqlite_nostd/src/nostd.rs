@@ -19,7 +19,7 @@ pub use sqlite3_allocator::*;
 pub use sqlite3_capi::*;
 
 // https://www.sqlite.org/c3ref/c_alter_table.html
-#[derive(FromPrimitive, PartialEq, Debug)]
+#[derive(FromPrimitive, PartialEq, Debug, Clone, Copy)]
 pub enum ActionCode {
     COPY = 0,
     CREATE_INDEX = 1,
@@ -57,7 +57,7 @@ pub enum ActionCode {
     RECURSIVE = 33,
 }
 
-#[derive(FromPrimitive, PartialEq, Debug)]
+#[derive(FromPrimitive, PartialEq, Debug, Clone, Copy)]
 pub enum ResultCode {
     OK = 0,
     ERROR = 1,
@@ -219,7 +219,7 @@ impl From<String> for ResultCode {
     }
 }
 
-#[derive(FromPrimitive, PartialEq, Debug)]
+#[derive(FromPrimitive, PartialEq, Debug, Clone, Copy)]
 pub enum ColumnType {
     Integer = 1,
     Float = 2,
