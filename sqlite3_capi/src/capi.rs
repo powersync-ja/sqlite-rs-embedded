@@ -11,7 +11,7 @@ pub use crate::bindings::{
     sqlite3_index_info as index_info,
     sqlite3_index_info_sqlite3_index_constraint as index_constraint,
     sqlite3_index_info_sqlite3_index_constraint_usage as index_constraint_usage,
-    sqlite3_module as module, sqlite3_stmt as stmt, sqlite3_uint64 as uint64,
+    sqlite3_module as module, sqlite3_mutex, sqlite3_stmt as stmt, sqlite3_uint64 as uint64,
     sqlite3_value as value, sqlite3_vtab as vtab, sqlite3_vtab_cursor as vtab_cursor,
     sqlite_int64 as int64, SQLITE_DETERMINISTIC as DETERMINISTIC, SQLITE_DIRECTONLY as DIRECTONLY,
     SQLITE_INDEX_CONSTRAINT_EQ as INDEX_CONSTRAINT_EQ,
@@ -56,9 +56,11 @@ mod aliased {
         sqlite3_errcode as errcode, sqlite3_errmsg as errmsg, sqlite3_exec as exec,
         sqlite3_finalize as finalize, sqlite3_free as free,
         sqlite3_get_autocommit as get_autocommit, sqlite3_get_auxdata as get_auxdata,
-        sqlite3_malloc as malloc, sqlite3_malloc64 as malloc64, sqlite3_next_stmt as next_stmt,
-        sqlite3_open as open, sqlite3_prepare_v2 as prepare_v2, sqlite3_prepare_v3 as prepare_v3,
-        sqlite3_randomness as randomness, sqlite3_reset as reset,
+        sqlite3_malloc as malloc, sqlite3_malloc64 as malloc64, sqlite3_mutex_alloc as mutex_alloc,
+        sqlite3_mutex_enter as mutex_enter, sqlite3_mutex_free as mutex_free,
+        sqlite3_mutex_leave as mutex_leave, sqlite3_mutex_try as mutex_try,
+        sqlite3_next_stmt as next_stmt, sqlite3_open as open, sqlite3_prepare_v2 as prepare_v2,
+        sqlite3_prepare_v3 as prepare_v3, sqlite3_randomness as randomness, sqlite3_reset as reset,
         sqlite3_result_blob as result_blob, sqlite3_result_double as result_double,
         sqlite3_result_error as result_error, sqlite3_result_error_code as result_error_code,
         sqlite3_result_int as result_int, sqlite3_result_int64 as result_int64,
@@ -590,4 +592,24 @@ pub fn vtab_distinct(index_info: *mut index_info) -> c_int {
 
 pub fn get_autocommit(db: *mut sqlite3) -> c_int {
     unsafe { invoke_sqlite!(get_autocommit, db) }
+}
+
+pub fn sqlite3_mutex_alloc(flags: c_int) -> *mut sqlite3_mutex {
+    unsafe { invoke_sqlite!(mutex_alloc, flags) }
+}
+
+pub fn sqlite3_mutex_free(mutex: *mut sqlite3_mutex) {
+    unsafe { invoke_sqlite!(mutex_free, mutex) }
+}
+
+pub fn sqlite3_mutex_enter(mutex: *mut sqlite3_mutex) {
+    unsafe { invoke_sqlite!(mutex_enter, mutex) }
+}
+
+pub fn sqlite3_mutex_try(mutex: *mut sqlite3_mutex) -> c_int {
+    unsafe { invoke_sqlite!(mutex_try, mutex) }
+}
+
+pub fn sqlite3_mutex_leave(mutex: *mut sqlite3_mutex) {
+    unsafe { invoke_sqlite!(mutex_leave, mutex) }
 }
