@@ -10,9 +10,7 @@ use core::ffi::{c_char, c_int, c_void, CStr};
 use core::ptr::null_mut;
 use core::{error::Error, slice, str::Utf8Error};
 
-#[cfg(not(feature = "std"))]
 use num_derive::FromPrimitive;
-#[cfg(not(feature = "std"))]
 use num_traits::FromPrimitive;
 
 pub use sqlite3_allocator::*;

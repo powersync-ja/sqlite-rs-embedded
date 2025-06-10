@@ -14,14 +14,6 @@ fn main() {
     // Tell cargo to invalidate the built crate whenever the wrapper changes
     println!("cargo:rerun-if-changed=wrapper.h");
 
-    let mut target_override: Vec<String> = vec![];
-    if let Ok(t) = env::var("TARGET") {
-        if t == "aarch64-apple-ios-sim" {
-            // Workaround for https://github.com/rust-lang/rust-bindgen/issues/3181
-            target_override.push("--target=arm64-apple-ios-simulator".to_string());
-        }
-    }
-
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
@@ -32,11 +24,10 @@ fn main() {
         // bindings for.
         .header("wrapper.h")
         .clang_arg("-fvisibility=default")
-        .clang_args(target_override)
         .use_core()
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
-        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks::new()))
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.
