@@ -762,6 +762,11 @@ impl ManagedStmt {
     }
 
     #[inline]
+    pub fn bind_double(&self, i: i32, val: f64) -> Result<ResultCode, ResultCode> {
+        convert_rc(bind_double(self.stmt, i, val))
+    }
+
+    #[inline]
     pub fn bind_null(&self, i: i32) -> Result<ResultCode, ResultCode> {
         convert_rc(bind_null(self.stmt, i))
     }
@@ -769,6 +774,21 @@ impl ManagedStmt {
     #[inline]
     pub fn clear_bindings(&self) -> Result<ResultCode, ResultCode> {
         convert_rc(clear_bindings(self.stmt))
+    }
+
+    #[inline]
+    pub fn bind_parameter_count(&self) -> c_int {
+        bind_parameter_count(self.stmt)
+    }
+
+    pub fn bind_parameter_name(&self, i: i32) -> Result<Option<&str>, Utf8Error> {
+        let ptr = bind_parameter_name(self.stmt, i);
+        if ptr.is_null() {
+            Ok(None)
+        } else {
+            let name = unsafe { CStr::from_ptr(ptr) };
+            Ok(Some(name.to_str()?))
+        }
     }
 
     #[inline]
