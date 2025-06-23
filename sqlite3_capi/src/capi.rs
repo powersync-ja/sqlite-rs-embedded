@@ -220,6 +220,14 @@ pub fn bind_value(stmt: *mut stmt, c: c_int, v: *mut value) -> c_int {
     unsafe { invoke_sqlite!(bind_value, stmt, c, v) }
 }
 
+pub fn bind_parameter_count(stmt: *mut stmt) -> c_int {
+    unsafe { invoke_sqlite!(bind_parameter_count, stmt) }
+}
+
+pub fn bind_parameter_name(stmt: *mut stmt, c: c_int) -> *const c_char {
+    unsafe { invoke_sqlite!(bind_parameter_name, stmt, c) }
+}
+
 pub fn close(db: *mut sqlite3) -> c_int {
     unsafe { invoke_sqlite!(close, db) }
 }
