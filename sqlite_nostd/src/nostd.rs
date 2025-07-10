@@ -237,6 +237,16 @@ pub fn open(filename: *const c_char) -> Result<ManagedConnection, ResultCode> {
     }
 }
 
+pub fn libversion() -> &'static str {
+    unsafe { CStr::from_ptr(sqlite3_capi::libversion()) }
+        .to_str()
+        .unwrap()
+}
+
+pub fn libversion_number() -> c_int {
+    sqlite3_capi::libversion_number()
+}
+
 pub fn randomness(blob: &mut [u8]) {
     sqlite3_capi::randomness(blob.len() as c_int, blob.as_mut_ptr() as *mut c_void)
 }
@@ -279,6 +289,7 @@ pub trait Connection {
 
     fn errcode(&self) -> ResultCode;
     fn errmsg(&self) -> Result<String, IntoStringError>;
+    fn error_offset(&self) -> Option<usize>;
 
     /// sql should be a null terminated string! However you find is most efficient to craft those,
     /// hence why we have no opinion on &str vs String vs CString vs whatever
@@ -397,6 +408,10 @@ impl Connection for ManagedConnection {
     #[inline]
     fn errcode(&self) -> ResultCode {
         self.db.errcode()
+    }
+
+    fn error_offset(&self) -> Option<usize> {
+        self.db.error_offset()
     }
 
     #[inline]
@@ -615,6 +630,13 @@ impl Connection for *mut sqlite3 {
         ResultCode::from_i32(errcode(*self)).unwrap()
     }
 
+    fn error_offset(&self) -> Option<usize> {
+        match error_offset(*self) {
+            -1 => None,
+            other => Some(other as usize),
+        }
+    }
+
     fn get_autocommit(&self) -> bool {
         get_autocommit(*self) != 0
     }
@@ -645,6 +667,11 @@ impl ManagedStmt {
         } else {
             Err(rc)
         }
+    }
+
+    pub fn sql(&self) -> Result<&str, ResultCode> {
+        let ptr = sql(self.stmt);
+        Ok(unsafe { CStr::from_ptr(ptr) }.to_str()?)
     }
 
     #[inline]
