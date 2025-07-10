@@ -53,9 +53,10 @@ mod aliased {
         sqlite3_commit_hook as commit_hook, sqlite3_context_db_handle as context_db_handle,
         sqlite3_create_function_v2 as create_function_v2,
         sqlite3_create_module_v2 as create_module_v2, sqlite3_declare_vtab as declare_vtab,
-        sqlite3_errcode as errcode, sqlite3_errmsg as errmsg, sqlite3_exec as exec,
-        sqlite3_finalize as finalize, sqlite3_free as free,
+        sqlite3_errcode as errcode, sqlite3_errmsg as errmsg, sqlite3_error_offset as error_offset,
+        sqlite3_exec as exec, sqlite3_finalize as finalize, sqlite3_free as free,
         sqlite3_get_autocommit as get_autocommit, sqlite3_get_auxdata as get_auxdata,
+        sqlite3_libversion as libversion, sqlite3_libversion_number as libversion_number,
         sqlite3_malloc as malloc, sqlite3_malloc64 as malloc64, sqlite3_mutex_alloc as mutex_alloc,
         sqlite3_mutex_enter as mutex_enter, sqlite3_mutex_free as mutex_free,
         sqlite3_mutex_leave as mutex_leave, sqlite3_mutex_try as mutex_try,
@@ -97,13 +98,19 @@ macro_rules! invoke_sqlite {
     ($name:ident, $($arg:expr),*) => {
       aliased::$name($($arg),*)
     };
+    ($name:ident) => {
+      aliased::$name()
+    };
 }
 
 #[cfg(feature = "loadable_extension")]
 macro_rules! invoke_sqlite {
   ($name:ident, $($arg:expr),*) => {
     ((*SQLITE3_API).$name.unwrap())($($arg),*)
-  }
+  };
+  ($name:ident) => {
+    ((*SQLITE3_API).$name.unwrap())()
+  };
 }
 
 pub extern "C" fn droprust(ptr: *mut c_void) {
@@ -364,6 +371,10 @@ pub fn errmsg(db: *mut sqlite3) -> CString {
     unsafe { CStr::from_ptr(invoke_sqlite!(errmsg, db)).to_owned() }
 }
 
+pub fn error_offset(db: *mut sqlite3) -> c_int {
+    unsafe { invoke_sqlite!(error_offset, db) }
+}
+
 pub fn exec(db: *mut sqlite3, s: *const c_char) -> c_int {
     unsafe { invoke_sqlite!(exec, db, s, None, ptr::null_mut(), ptr::null_mut()) }
 }
@@ -389,6 +400,14 @@ pub fn load_extension(
     pzerr: *mut *mut c_char,
 ) -> c_int {
     unsafe { crate::bindings::sqlite3_load_extension(db, zfile, zproc, pzerr) }
+}
+
+pub fn libversion() -> *const c_char {
+    unsafe { invoke_sqlite!(libversion) }
+}
+
+pub fn libversion_number() -> c_int {
+    unsafe { invoke_sqlite!(libversion_number) }
 }
 
 #[inline]
