@@ -837,14 +837,8 @@ impl Drop for ManagedStmt {
 }
 
 pub trait Context {
-    /// Pass and give ownership of the string to SQLite.
-    /// SQLite will not copy the string.
-    /// This method will correctly drop the string when SQLite is finished
-    /// using it.
-    fn result_text_owned(&self, text: String);
     fn result_text_transient(&self, text: &str);
     fn result_text_static(&self, text: &str);
-    fn result_blob_owned(&self, blob: Vec<u8>);
     fn result_blob_transient(&self, blob: &[u8]);
     fn result_blob_static(&self, blob: &[u8]);
     fn result_error(&self, text: &str);
@@ -854,6 +848,7 @@ pub trait Context {
     fn result_int(&self, value: i32);
     fn result_int64(&self, value: int64);
     fn result_null(&self);
+    fn result_subtype(&self, subtype: u32);
     fn db_handle(&self) -> *mut sqlite3;
     fn user_data(&self) -> *mut c_void;
 }
@@ -862,21 +857,6 @@ impl Context for *mut context {
     #[inline]
     fn result_null(&self) {
         result_null(*self)
-    }
-
-    /// Passes ownership of the blob to SQLite without copying.
-    /// The blob must have been allocated with `sqlite3_malloc`!
-    #[inline]
-    fn result_text_owned(&self, text: String) {
-        let (ptr, len, _) = text.into_raw_parts();
-        result_text(
-            *self,
-            ptr as *const c_char,
-            len as i32,
-            // TODO: this drop code does not seem to work
-            // Valgrind tells us we have a memory leak when using `result_text_owned`
-            Destructor::CUSTOM(droprust),
-        );
     }
 
     /// Takes a reference to a string, has SQLite copy the contents
@@ -901,14 +881,6 @@ impl Context for *mut context {
             text.len() as i32,
             Destructor::STATIC,
         );
-    }
-
-    /// Passes ownership of the blob to SQLite without copying.
-    /// The blob must have been allocated with `sqlite3_malloc`!
-    #[inline]
-    fn result_blob_owned(&self, blob: Vec<u8>) {
-        let (ptr, len, _) = blob.into_raw_parts();
-        result_blob(*self, ptr, len as i32, Destructor::CUSTOM(droprust));
     }
 
     /// SQLite will make a copy of the blob
@@ -958,6 +930,11 @@ impl Context for *mut context {
     }
 
     #[inline]
+    fn result_subtype(&self, subtype: u32) {
+        result_subtype(*self, subtype);
+    }
+
+    #[inline]
     fn db_handle(&self) -> *mut sqlite3 {
         context_db_handle(*self)
     }
@@ -971,11 +948,8 @@ impl Context for *mut context {
 pub trait Stmt {
     fn sql(&self) -> &str;
     fn bind_blob(&self, i: i32, val: &[u8], d: Destructor) -> Result<ResultCode, ResultCode>;
-    /// Gives SQLite ownership of the blob and has SQLite free it.
-    fn bind_blob_owned(&self, i: i32, val: Vec<u8>) -> Result<ResultCode, ResultCode>;
     fn bind_value(&self, i: i32, val: *mut value) -> Result<ResultCode, ResultCode>;
     fn bind_text(&self, i: i32, text: &str, d: Destructor) -> Result<ResultCode, ResultCode>;
-    fn bind_text_owned(&self, i: i32, text: String) -> Result<ResultCode, ResultCode>;
     fn bind_int64(&self, i: i32, val: int64) -> Result<ResultCode, ResultCode>;
     fn bind_int(&self, i: i32, val: i32) -> Result<ResultCode, ResultCode>;
     fn bind_double(&self, i: i32, val: f64) -> Result<ResultCode, ResultCode>;
@@ -1014,18 +988,6 @@ impl Stmt for *mut stmt {
     }
 
     #[inline]
-    fn bind_blob_owned(&self, i: i32, val: Vec<u8>) -> Result<ResultCode, ResultCode> {
-        let (ptr, len, _) = val.into_raw_parts();
-        convert_rc(bind_blob(
-            *self,
-            i,
-            ptr as *const c_void,
-            len as i32,
-            Destructor::CUSTOM(droprust),
-        ))
-    }
-
-    #[inline]
     fn bind_double(&self, i: i32, val: f64) -> Result<ResultCode, ResultCode> {
         convert_rc(bind_double(*self, i, val))
     }
@@ -1043,18 +1005,6 @@ impl Stmt for *mut stmt {
             text.as_ptr() as *const c_char,
             text.len() as i32,
             d,
-        ))
-    }
-
-    #[inline]
-    fn bind_text_owned(&self, i: i32, text: String) -> Result<ResultCode, ResultCode> {
-        let (ptr, len, _) = text.into_raw_parts();
-        convert_rc(bind_text(
-            *self,
-            i,
-            ptr as *const c_char,
-            len as i32,
-            Destructor::CUSTOM(droprust),
         ))
     }
 

@@ -86,13 +86,6 @@ pub enum Destructor {
     CUSTOM(xDestroy),
 }
 
-#[macro_export]
-macro_rules! strlit {
-    ($s:expr) => {
-        concat!($s, "\0").as_ptr() as *const c_char
-    };
-}
-
 #[cfg(feature = "static")]
 macro_rules! invoke_sqlite {
     ($name:ident, $($arg:expr),*) => {
@@ -111,10 +104,6 @@ macro_rules! invoke_sqlite {
   ($name:ident) => {
     ((*SQLITE3_API).$name.unwrap())()
   };
-}
-
-pub extern "C" fn droprust(ptr: *mut c_void) {
-    unsafe { invoke_sqlite!(free, ptr as *mut c_void) }
 }
 
 #[macro_export]
@@ -166,13 +155,13 @@ pub fn changes64(db: *mut sqlite3) -> int64 {
     unsafe { invoke_sqlite!(changes64, db) }
 }
 
+#[cfg(feature = "static")]
 pub fn shutdown() -> c_int {
-    #[cfg(feature = "static")]
-    unsafe {
-        aliased::shutdown()
-    }
+    unsafe { aliased::shutdown() }
+}
 
-    #[cfg(feature = "loadable_extension")]
+#[cfg(not(feature = "static"))]
+pub fn shutdown() -> c_int {
     0
 }
 
