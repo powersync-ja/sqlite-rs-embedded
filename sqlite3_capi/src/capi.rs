@@ -67,9 +67,10 @@ mod aliased {
         sqlite3_result_int as result_int, sqlite3_result_int64 as result_int64,
         sqlite3_result_null as result_null, sqlite3_result_pointer as result_pointer,
         sqlite3_result_subtype as result_subtype, sqlite3_result_text as result_text,
-        sqlite3_result_value as result_value, sqlite3_set_authorizer as set_authorizer,
-        sqlite3_set_auxdata as set_auxdata, sqlite3_shutdown as shutdown, sqlite3_sql as sql,
-        sqlite3_step as step, sqlite3_update_hook as update_hook, sqlite3_user_data as user_data,
+        sqlite3_result_value as result_value, sqlite3_rollback_hook as rollback_hook,
+        sqlite3_set_authorizer as set_authorizer, sqlite3_set_auxdata as set_auxdata,
+        sqlite3_shutdown as shutdown, sqlite3_sql as sql, sqlite3_step as step,
+        sqlite3_update_hook as update_hook, sqlite3_user_data as user_data,
         sqlite3_value_blob as value_blob, sqlite3_value_bytes as value_bytes,
         sqlite3_value_double as value_double, sqlite3_value_int as value_int,
         sqlite3_value_int64 as value_int64, sqlite3_value_pointer as value_pointer,
@@ -237,12 +238,8 @@ pub fn commit_hook(
     db: *mut sqlite3,
     callback: Option<xCommitHook>,
     user_data: *mut c_void,
-) -> Option<xCommitHook> {
-    unsafe {
-        invoke_sqlite!(commit_hook, db, callback, user_data)
-            .as_ref()
-            .map(|p| core::mem::transmute(p))
-    }
+) -> *mut c_void {
+    unsafe { invoke_sqlite!(commit_hook, db, callback, user_data) }
 }
 
 // pub fn mprintf(format: *const i8, ...) -> *mut c_char {
@@ -549,6 +546,15 @@ pub fn sql(s: *mut stmt) -> *const c_char {
 
 pub fn reset(stmt: *mut stmt) -> c_int {
     unsafe { invoke_sqlite!(reset, stmt) }
+}
+
+pub type xRollbackHook = unsafe extern "C" fn(*mut c_void);
+pub fn rollback_hook(
+    db: *mut sqlite3,
+    hook: Option<xRollbackHook>,
+    ctx: *mut c_void,
+) -> *mut c_void {
+    unsafe { invoke_sqlite!(rollback_hook, db, hook, ctx) }
 }
 
 #[inline]
