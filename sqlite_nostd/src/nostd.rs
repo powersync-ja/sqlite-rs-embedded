@@ -256,11 +256,7 @@ pub struct ManagedConnection {
 }
 
 pub trait Connection {
-    fn commit_hook(
-        &self,
-        callback: Option<xCommitHook>,
-        user_data: *mut c_void,
-    ) -> Option<xCommitHook>;
+    fn commit_hook(&self, callback: Option<xCommitHook>, user_data: *mut c_void) -> *mut c_void;
 
     fn create_function_v2(
         &self,
@@ -318,7 +314,9 @@ pub trait Connection {
         user_data: *mut c_void,
     ) -> Result<ResultCode, ResultCode>;
 
-    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void;
+    fn rollback_hook(&self, callback: Option<xRollbackHook>, ctx: *mut c_void) -> *mut c_void;
+
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *mut c_void;
 
     fn get_autocommit(&self) -> bool;
 }
@@ -328,11 +326,7 @@ impl Connection for ManagedConnection {
         self.db.changes64()
     }
 
-    fn commit_hook(
-        &self,
-        callback: Option<xCommitHook>,
-        user_data: *mut c_void,
-    ) -> Option<xCommitHook> {
+    fn commit_hook(&self, callback: Option<xCommitHook>, user_data: *mut c_void) -> *mut c_void {
         self.db.commit_hook(callback, user_data)
     }
 
@@ -421,7 +415,11 @@ impl Connection for ManagedConnection {
         self.db.get_autocommit()
     }
 
-    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void {
+    fn rollback_hook(&self, callback: Option<xRollbackHook>, ctx: *mut c_void) -> *mut c_void {
+        self.db.rollback_hook(callback, ctx)
+    }
+
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *mut c_void {
         self.db.update_hook(callback, ctx)
     }
 
@@ -459,11 +457,7 @@ impl Connection for *mut sqlite3 {
         changes64(*self)
     }
 
-    fn commit_hook(
-        &self,
-        callback: Option<xCommitHook>,
-        user_data: *mut c_void,
-    ) -> Option<xCommitHook> {
+    fn commit_hook(&self, callback: Option<xCommitHook>, user_data: *mut c_void) -> *mut c_void {
         commit_hook(*self, callback, user_data)
     }
 
@@ -647,7 +641,11 @@ impl Connection for *mut sqlite3 {
         get_autocommit(*self) != 0
     }
 
-    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void {
+    fn rollback_hook(&self, callback: Option<xRollbackHook>, ctx: *mut c_void) -> *mut c_void {
+        rollback_hook(*self, callback, ctx)
+    }
+
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *mut c_void {
         update_hook(*self, callback, ctx)
     }
 }
