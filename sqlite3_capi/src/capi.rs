@@ -69,14 +69,14 @@ mod aliased {
         sqlite3_result_subtype as result_subtype, sqlite3_result_text as result_text,
         sqlite3_result_value as result_value, sqlite3_set_authorizer as set_authorizer,
         sqlite3_set_auxdata as set_auxdata, sqlite3_shutdown as shutdown, sqlite3_sql as sql,
-        sqlite3_step as step, sqlite3_user_data as user_data, sqlite3_value_blob as value_blob,
-        sqlite3_value_bytes as value_bytes, sqlite3_value_double as value_double,
-        sqlite3_value_int as value_int, sqlite3_value_int64 as value_int64,
-        sqlite3_value_pointer as value_pointer, sqlite3_value_subtype as value_subtype,
-        sqlite3_value_text as value_text, sqlite3_value_type as value_type,
-        sqlite3_vtab_collation as vtab_collation, sqlite3_vtab_config as vtab_config,
-        sqlite3_vtab_distinct as vtab_distinct, sqlite3_vtab_nochange as vtab_nochange,
-        sqlite3_vtab_on_conflict as vtab_on_conflict,
+        sqlite3_step as step, sqlite3_update_hook as update_hook, sqlite3_user_data as user_data,
+        sqlite3_value_blob as value_blob, sqlite3_value_bytes as value_bytes,
+        sqlite3_value_double as value_double, sqlite3_value_int as value_int,
+        sqlite3_value_int64 as value_int64, sqlite3_value_pointer as value_pointer,
+        sqlite3_value_subtype as value_subtype, sqlite3_value_text as value_text,
+        sqlite3_value_type as value_type, sqlite3_vtab_collation as vtab_collation,
+        sqlite3_vtab_config as vtab_config, sqlite3_vtab_distinct as vtab_distinct,
+        sqlite3_vtab_nochange as vtab_nochange, sqlite3_vtab_on_conflict as vtab_on_conflict,
     };
 }
 
@@ -559,6 +559,16 @@ pub fn step(stmt: *mut stmt) -> c_int {
 #[inline]
 pub fn user_data(ctx: *mut context) -> *mut c_void {
     unsafe { invoke_sqlite!(user_data, ctx) }
+}
+
+pub type xUpdateHook =
+    unsafe extern "C" fn(*mut c_void, c_int, *const c_char, *const c_char, i64) -> ();
+pub fn update_hook(
+    db: *mut sqlite3,
+    callback: Option<xUpdateHook>,
+    context: *mut c_void,
+) -> *mut c_void {
+    unsafe { invoke_sqlite!(update_hook, db, callback, context) }
 }
 
 pub fn value_text<'a>(arg1: *mut value) -> &'a str {
