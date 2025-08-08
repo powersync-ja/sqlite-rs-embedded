@@ -318,6 +318,8 @@ pub trait Connection {
         user_data: *mut c_void,
     ) -> Result<ResultCode, ResultCode>;
 
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void;
+
     fn get_autocommit(&self) -> bool;
 }
 
@@ -417,6 +419,10 @@ impl Connection for ManagedConnection {
     #[inline]
     fn get_autocommit(&self) -> bool {
         self.db.get_autocommit()
+    }
+
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void {
+        self.db.update_hook(callback, ctx)
     }
 
     #[cfg(all(feature = "static", not(feature = "omit_load_extension")))]
@@ -639,6 +645,10 @@ impl Connection for *mut sqlite3 {
 
     fn get_autocommit(&self) -> bool {
         get_autocommit(*self) != 0
+    }
+
+    fn update_hook(&self, callback: Option<xUpdateHook>, ctx: *mut c_void) -> *const c_void {
+        update_hook(*self, callback, ctx)
     }
 }
 
